@@ -26,6 +26,12 @@ const PUPIL: Color32 = Color32::from_rgb(24, 31, 36);
 const MOUTH: Color32 = Color32::from_rgb(68, 39, 46);
 const TONGUE: Color32 = Color32::from_rgb(205, 104, 119);
 
+#[derive(Clone, Copy)]
+struct EyelidState {
+    openness: f32,
+    narrowing: f32,
+}
+
 fn main() -> eframe::Result {
     #[cfg(windows)]
     let restored_placement = placement::WindowPlacement::load().ok().flatten();
@@ -160,7 +166,9 @@ impl GazeApp {
         let radius_x = ((rect.width() - 38.0) / 4.0).clamp(46.0, 125.0);
         let base_radius_y = (rect.height() * 0.35).clamp(38.0, 110.0);
         let radius_y = base_radius_y * openness;
-        let spacing = radius_x + 7.0 * scale;
+        // Leave room for the 4-point outlines so the two eyes do not overlap.
+        // Pupil travel includes the same half-gap and can still reach center.
+        let spacing = radius_x + 3.0;
         let eye_center = rect.center() - Vec2::new(0.0, 18.0 * scale * idle.yawn);
         let left = eye_center - Vec2::new(spacing, 0.0);
         let right = eye_center + Vec2::new(spacing, 0.0);
@@ -198,8 +206,12 @@ impl GazeApp {
         );
 
         let painter = ui.painter();
-        self.paint_eye(painter, left, cursor, radius_x, radius_y, openness);
-        self.paint_eye(painter, right, cursor, radius_x, radius_y, openness);
+        let eyelids = EyelidState {
+            openness,
+            narrowing: squint,
+        };
+        self.paint_eye(painter, left, cursor, radius_x, radius_y, eyelids);
+        self.paint_eye(painter, right, cursor, radius_x, radius_y, eyelids);
         if let Some((center, radius)) = mouth {
             self.paint_mouth(painter, center, radius, idle.yawn);
         }
@@ -212,9 +224,9 @@ impl GazeApp {
         cursor: Pos2,
         radius_x: f32,
         radius_y: f32,
-        openness: f32,
+        eyelids: EyelidState,
     ) {
-        if openness < 0.075 || radius_y < 3.0 {
+        if eyelids.openness < 0.075 || radius_y < 3.0 {
             let half_width = radius_x * 0.82;
             painter.line_segment(
                 [
@@ -229,14 +241,28 @@ impl GazeApp {
         let eye_radius = Vec2::new(radius_x, radius_y.max(3.0));
         painter.add(Shape::ellipse_filled(center, eye_radius, SCLERA));
 
-        let iris_radius = (radius_x * 0.29).min(radius_y * 0.58).clamp(2.0, 34.0);
-        let offset = pupil_offset(cursor - center, radius_x, radius_y, iris_radius);
+        // Distance squinting changes the eyelid opening, not the iris size.
+        // The iris is allowed to move under the upper/lower lid and is clipped
+        // to the current vertical eye opening below.
+        let iris_radius = (radius_x * 0.38).clamp(2.0, 44.0);
+        let offset = pupil_offset(
+            cursor - center,
+            radius_x,
+            radius_y,
+            iris_radius,
+            eyelids.narrowing,
+        );
         let iris_center = center + offset;
+        let eye_clip = Rect::from_min_max(
+            Pos2::new(painter.clip_rect().left(), center.y - radius_y),
+            Pos2::new(painter.clip_rect().right(), center.y + radius_y),
+        );
+        let iris_painter = painter.with_clip_rect(eye_clip);
 
-        painter.circle_filled(iris_center, iris_radius, IRIS);
-        painter.circle_filled(iris_center, iris_radius * 0.54, PUPIL);
+        iris_painter.circle_filled(iris_center, iris_radius, IRIS);
+        iris_painter.circle_filled(iris_center, iris_radius * 0.54, PUPIL);
         if iris_radius > 7.0 {
-            painter.circle_filled(
+            iris_painter.circle_filled(
                 iris_center - Vec2::splat(iris_radius * 0.27),
                 (iris_radius * 0.16).max(1.5),
                 Color32::WHITE,

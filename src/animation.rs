@@ -147,6 +147,7 @@ pub fn pupil_offset(
     radius_x: f32,
     radius_y: f32,
     iris_radius: f32,
+    eyelid_narrowing: f32,
 ) -> eframe::egui::Vec2 {
     let distance = cursor_delta.length();
     if distance <= f32::EPSILON {
@@ -154,9 +155,17 @@ pub fn pupil_offset(
     }
 
     let direction = cursor_delta / distance;
-    let travel = smoothstep((distance / 180.0).clamp(0.0, 1.0));
-    let room_x = (radius_x - iris_radius - 7.0).max(0.0);
-    let room_y = (radius_y - iris_radius - 7.0).max(0.0);
+    // Scale the response distance with the eye width. A fixed 180-point range
+    // barely moved small eyes when the cursor was between them, so the inward
+    // directions were correct but did not read visually as convergence.
+    let full_travel_distance = (radius_x + 3.0).max(1.0);
+    let travel = smoothstep((distance / full_travel_distance).clamp(0.0, 1.0));
+    let room_x = (radius_x + 3.0 - iris_radius).max(0.0);
+    // At a fully open eye the iris only reaches the lid. As the lid narrows,
+    // allow it to cover progressively more of the iris, reaching exactly half
+    // at maximum distance squinting.
+    let eyelid_narrowing = eyelid_narrowing.clamp(0.0, 1.0);
+    let room_y = (radius_y - iris_radius * (1.0 - eyelid_narrowing)).max(0.0);
 
     eframe::egui::vec2(direction.x * room_x, direction.y * room_y) * travel
 }
@@ -182,9 +191,84 @@ mod tests {
 
     #[test]
     fn pupil_stays_within_available_eye_area() {
-        let offset = pupil_offset(eframe::egui::vec2(10_000.0, 5_000.0), 70.0, 50.0, 18.0);
-        assert!(offset.x.abs() <= 45.0);
-        assert!(offset.y.abs() <= 25.0);
+        let offset = pupil_offset(eframe::egui::vec2(10_000.0, 5_000.0), 70.0, 50.0, 18.0, 0.0);
+        assert!(offset.x.abs() <= 55.0);
+        assert!(offset.y.abs() <= 32.0);
+    }
+
+    #[test]
+    fn open_eye_does_not_hide_remote_upper_iris() {
+        let radius_y = 50.0;
+        let iris_radius = 18.0;
+        let offset = pupil_offset(
+            eframe::egui::vec2(0.0, -10_000.0),
+            70.0,
+            radius_y,
+            iris_radius,
+            0.0,
+        );
+
+        let iris_top = offset.y - iris_radius;
+        assert!((iris_top + radius_y).abs() < 0.001);
+    }
+
+    #[test]
+    fn maximum_squint_hides_half_of_remote_upper_iris() {
+        let radius_y = 29.0;
+        let iris_radius = 24.0;
+        let offset = pupil_offset(
+            eframe::egui::vec2(0.0, -10_000.0),
+            70.0,
+            radius_y,
+            iris_radius,
+            1.0,
+        );
+
+        assert!((offset.y + radius_y).abs() < 0.001);
+    }
+
+    #[test]
+    fn maximum_squint_hides_half_of_remote_lower_iris() {
+        let radius_y = 29.0;
+        let iris_radius = 24.0;
+        let offset = pupil_offset(
+            eframe::egui::vec2(0.0, 10_000.0),
+            70.0,
+            radius_y,
+            iris_radius,
+            1.0,
+        );
+
+        assert!((offset.y - radius_y).abs() < 0.001);
+    }
+
+    #[test]
+    fn irises_touch_when_cursor_is_between_the_eyes() {
+        let radius_x = 55.5;
+        let radius_y = 52.5;
+        let iris_radius = radius_x * 0.38;
+        let spacing = radius_x + 3.0;
+        let left_offset = pupil_offset(
+            eframe::egui::vec2(spacing, 0.0),
+            radius_x,
+            radius_y,
+            iris_radius,
+            0.0,
+        );
+        let right_offset = pupil_offset(
+            eframe::egui::vec2(-spacing, 0.0),
+            radius_x,
+            radius_y,
+            iris_radius,
+            0.0,
+        );
+
+        let left_iris_inner_edge = -spacing + left_offset.x + iris_radius;
+        let right_iris_inner_edge = spacing + right_offset.x - iris_radius;
+        assert!(spacing > radius_x + 2.0);
+        assert!((left_iris_inner_edge - right_iris_inner_edge).abs() < 0.001);
+        assert!(left_iris_inner_edge.abs() < 0.001);
+        assert_eq!(left_offset.x, -right_offset.x);
     }
 
     #[test]
