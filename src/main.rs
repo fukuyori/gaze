@@ -4,6 +4,8 @@ mod animation;
 #[cfg(windows)]
 mod autostart;
 #[cfg(windows)]
+mod input_activity;
+#[cfg(windows)]
 mod native_resize;
 #[cfg(windows)]
 mod placement;
@@ -88,6 +90,8 @@ struct GazeApp {
     placement_tracker: placement::PlacementTracker,
     #[cfg(windows)]
     native_resize: native_resize::NativeResize,
+    #[cfg(windows)]
+    keyboard_activity: input_activity::KeyboardActivity,
 }
 
 impl GazeApp {
@@ -108,10 +112,12 @@ impl GazeApp {
             placement::PlacementTracker::new(placement::WindowPlacement::load().ok().flatten());
         #[cfg(windows)]
         let tray = tray::TrayState::new(&creation_context.egui_ctx, placement_tracker.shared())?;
+        #[cfg(windows)]
+        let keyboard_activity = input_activity::KeyboardActivity::new(window_handle)?;
         Ok(Self {
             started_at: Instant::now(),
             blinker: Blinker::new(seed),
-            idle_animator: IdleAnimator::new(),
+            idle_animator: IdleAnimator::new(seed.rotate_left(17)),
             last_cursor: None,
             _repaint_watchdog: repaint_watchdog::RepaintWatchdog::new(&creation_context.egui_ctx)?,
             #[cfg(windows)]
@@ -122,6 +128,8 @@ impl GazeApp {
             placement_tracker,
             #[cfg(windows)]
             native_resize: native_resize::NativeResize::new(window_handle)?,
+            #[cfg(windows)]
+            keyboard_activity,
         })
     }
 
@@ -156,7 +164,10 @@ impl GazeApp {
         let distance = (cursor - rect.center()).length();
         let squint = distance_squint(distance, monitor_diagonal);
         let elapsed = self.started_at.elapsed();
-        let input_marker = input_activity_marker(ctx, elapsed);
+        #[cfg(windows)]
+        let input_marker = Some(self.keyboard_activity.marker());
+        #[cfg(not(windows))]
+        let input_marker = keyboard_activity_marker(ctx, elapsed);
         let idle = self.idle_animator.expression(elapsed, cursor, input_marker);
         let blink = self.blinker.closure(elapsed);
         let openness =
@@ -591,21 +602,8 @@ fn windows_cursor_in_viewport(ctx: &egui::Context) -> Option<Pos2> {
     })
 }
 
-#[cfg(windows)]
-fn input_activity_marker(_ctx: &egui::Context, _elapsed: Duration) -> Option<u32> {
-    use std::mem::size_of;
-    use windows_sys::Win32::UI::Input::KeyboardAndMouse::{GetLastInputInfo, LASTINPUTINFO};
-
-    let mut info = LASTINPUTINFO {
-        cbSize: size_of::<LASTINPUTINFO>() as u32,
-        dwTime: 0,
-    };
-    // SAFETY: `info` has the required size and remains writable for the call.
-    (unsafe { GetLastInputInfo(&mut info) } != 0).then_some(info.dwTime)
-}
-
 #[cfg(not(windows))]
-fn input_activity_marker(ctx: &egui::Context, elapsed: Duration) -> Option<u32> {
+fn keyboard_activity_marker(ctx: &egui::Context, elapsed: Duration) -> Option<u32> {
     ctx.input(|input| {
         input
             .events
