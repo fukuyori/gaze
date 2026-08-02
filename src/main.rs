@@ -7,6 +7,7 @@ mod autostart;
 mod native_resize;
 #[cfg(windows)]
 mod placement;
+mod repaint_watchdog;
 #[cfg(windows)]
 mod tray;
 
@@ -72,6 +73,7 @@ struct GazeApp {
     blinker: Blinker,
     idle_animator: IdleAnimator,
     last_cursor: Option<Pos2>,
+    _repaint_watchdog: repaint_watchdog::RepaintWatchdog,
     #[cfg(windows)]
     tray: tray::TrayState,
     #[cfg(windows)]
@@ -105,6 +107,7 @@ impl GazeApp {
             blinker: Blinker::new(seed),
             idle_animator: IdleAnimator::new(),
             last_cursor: None,
+            _repaint_watchdog: repaint_watchdog::RepaintWatchdog::new(&creation_context.egui_ctx)?,
             #[cfg(windows)]
             tray,
             #[cfg(windows)]
