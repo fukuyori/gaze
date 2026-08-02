@@ -90,30 +90,42 @@ pub struct IdleExpression {
 /// Turns pointer inactivity into a yawn followed by sleep.
 pub struct IdleAnimator {
     last_cursor: Option<eframe::egui::Pos2>,
-    last_moved_at: f32,
+    last_input_marker: Option<u32>,
+    last_active_at: f32,
 }
 
 impl IdleAnimator {
     pub fn new() -> Self {
         Self {
             last_cursor: None,
-            last_moved_at: 0.0,
+            last_input_marker: None,
+            last_active_at: 0.0,
         }
     }
 
-    pub fn expression(&mut self, elapsed: Duration, cursor: eframe::egui::Pos2) -> IdleExpression {
+    pub fn expression(
+        &mut self,
+        elapsed: Duration,
+        cursor: eframe::egui::Pos2,
+        input_marker: Option<u32>,
+    ) -> IdleExpression {
         let now = elapsed.as_secs_f32();
         let moved = self
             .last_cursor
             .is_some_and(|previous| previous.distance(cursor) >= 1.0);
+        let input_changed = input_marker.is_some_and(|marker| {
+            let changed = self.last_input_marker != Some(marker);
+            self.last_input_marker = Some(marker);
+            changed
+        });
 
-        if self.last_cursor.is_none() || moved {
+        if self.last_cursor.is_none() || moved || input_changed {
             self.last_cursor = Some(cursor);
-            self.last_moved_at = now;
+            self.last_active_at = now;
             return IdleExpression::default();
         }
 
-        let idle = (now - self.last_moved_at).max(0.0);
+        let idle = (now - self.last_active_at).max(0.0);
         let yawn_time = idle - YAWN_START;
         let yawn = if yawn_time < 0.0 {
             0.0
@@ -289,30 +301,69 @@ mod tests {
         let mut idle = IdleAnimator::new();
 
         assert_eq!(
-            idle.expression(Duration::ZERO, cursor),
+            idle.expression(Duration::ZERO, cursor, None),
             IdleExpression::default()
         );
         assert_eq!(
-            idle.expression(Duration::from_secs_f32(6.9), cursor),
+            idle.expression(Duration::from_secs_f32(6.9), cursor, None),
             IdleExpression::default()
         );
-        assert!(idle.expression(Duration::from_secs_f32(7.8), cursor).yawn > 0.9);
-        assert!(idle.expression(Duration::from_secs_f32(16.2), cursor).sleep > 0.99);
+        assert!(
+            idle.expression(Duration::from_secs_f32(7.8), cursor, None)
+                .yawn
+                > 0.9
+        );
+        assert!(
+            idle.expression(Duration::from_secs_f32(16.2), cursor, None)
+                .sleep
+                > 0.99
+        );
     }
 
     #[test]
     fn pointer_movement_wakes_immediately() {
         let mut idle = IdleAnimator::new();
         let cursor = eframe::egui::pos2(100.0, 100.0);
-        idle.expression(Duration::ZERO, cursor);
-        assert!(idle.expression(Duration::from_secs_f32(16.2), cursor).sleep > 0.99);
+        idle.expression(Duration::ZERO, cursor, None);
+        assert!(
+            idle.expression(Duration::from_secs_f32(16.2), cursor, None)
+                .sleep
+                > 0.99
+        );
 
         assert_eq!(
             idle.expression(
                 Duration::from_secs_f32(16.3),
-                cursor + eframe::egui::vec2(2.0, 0.0)
+                cursor + eframe::egui::vec2(2.0, 0.0),
+                None,
             ),
             IdleExpression::default()
+        );
+    }
+
+    #[test]
+    fn keyboard_input_prevents_idle_expression_while_mouse_is_still() {
+        let mut idle = IdleAnimator::new();
+        let cursor = eframe::egui::pos2(100.0, 100.0);
+        idle.expression(Duration::ZERO, cursor, Some(100));
+        assert!(
+            idle.expression(Duration::from_secs_f32(16.2), cursor, Some(100))
+                .sleep
+                > 0.99
+        );
+
+        assert_eq!(
+            idle.expression(Duration::from_secs_f32(16.3), cursor, Some(101)),
+            IdleExpression::default()
+        );
+        assert_eq!(
+            idle.expression(Duration::from_secs_f32(23.2), cursor, Some(101)),
+            IdleExpression::default()
+        );
+        assert!(
+            idle.expression(Duration::from_secs_f32(24.1), cursor, Some(101))
+                .yawn
+                > 0.9
         );
     }
 }

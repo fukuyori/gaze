@@ -9,7 +9,7 @@ An expressive xeyes-style desktop application built with egui / eframe.
 - Two eyes follow the desktop mouse cursor
 - The eyes squint as the cursor moves farther away
 - Natural blinking at irregular intervals of approximately 2.3 to 6.4 seconds
-- Yawns after the cursor remains still for 7 seconds, then closes its eyes and sleeps after 15 seconds
+- Yawns after mouse and keyboard input remains idle for 7 seconds, then closes its eyes and sleeps after 15 seconds
 - Transparent background with no title bar or taskbar entry
 - Show, hide, and exit controls in the system tray
 - Optional automatic startup when signing in to Windows

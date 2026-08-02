@@ -156,7 +156,8 @@ impl GazeApp {
         let distance = (cursor - rect.center()).length();
         let squint = distance_squint(distance, monitor_diagonal);
         let elapsed = self.started_at.elapsed();
-        let idle = self.idle_animator.expression(elapsed, cursor);
+        let input_marker = input_activity_marker(ctx, elapsed);
+        let idle = self.idle_animator.expression(elapsed, cursor, input_marker);
         let blink = self.blinker.closure(elapsed);
         let openness =
             ((1.0 - 0.62 * squint) * (1.0 - blink) * (1.0 - 0.18 * idle.yawn) * (1.0 - idle.sleep))
@@ -587,5 +588,29 @@ fn windows_cursor_in_viewport(ctx: &egui::Context) -> Option<Pos2> {
             point.x as f32 / pixels_per_point - window_origin.x,
             point.y as f32 / pixels_per_point - window_origin.y,
         ))
+    })
+}
+
+#[cfg(windows)]
+fn input_activity_marker(_ctx: &egui::Context, _elapsed: Duration) -> Option<u32> {
+    use std::mem::size_of;
+    use windows_sys::Win32::UI::Input::KeyboardAndMouse::{GetLastInputInfo, LASTINPUTINFO};
+
+    let mut info = LASTINPUTINFO {
+        cbSize: size_of::<LASTINPUTINFO>() as u32,
+        dwTime: 0,
+    };
+    // SAFETY: `info` has the required size and remains writable for the call.
+    (unsafe { GetLastInputInfo(&mut info) } != 0).then_some(info.dwTime)
+}
+
+#[cfg(not(windows))]
+fn input_activity_marker(ctx: &egui::Context, elapsed: Duration) -> Option<u32> {
+    ctx.input(|input| {
+        input
+            .events
+            .iter()
+            .any(|event| matches!(event, egui::Event::Key { pressed: true, .. }))
+            .then_some(elapsed.as_millis() as u32)
     })
 }
