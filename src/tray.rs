@@ -26,15 +26,15 @@ impl TrayState {
         exit_placement: crate::placement::SharedPlacement,
     ) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
         let menu = Menu::new();
-        let toggle_item = MenuItem::new("非表示", true, None);
+        let toggle_item = MenuItem::new("Hide", true, None);
         let autostart_item = CheckMenuItem::new(
-            "Windows起動時に自動起動",
+            "Start with Windows",
             true,
             crate::autostart::is_enabled().unwrap_or(false),
             None,
         );
         let separator = PredefinedMenuItem::separator();
-        let quit_item = MenuItem::new("終了", true, None);
+        let quit_item = MenuItem::new("Exit", true, None);
         menu.append_items(&[&toggle_item, &autostart_item, &separator, &quit_item])?;
 
         let pending_action = Arc::new(AtomicU8::new(0));
@@ -78,11 +78,8 @@ impl TrayState {
         if action & ACTION_TOGGLE != 0 {
             self.window_visible = !self.window_visible;
             ctx.send_viewport_cmd(ViewportCommand::Visible(self.window_visible));
-            self.toggle_item.set_text(if self.window_visible {
-                "非表示"
-            } else {
-                "表示"
-            });
+            self.toggle_item
+                .set_text(if self.window_visible { "Hide" } else { "Show" });
         }
         if action & ACTION_AUTOSTART != 0 {
             let enabled = self.autostart_item.is_checked();

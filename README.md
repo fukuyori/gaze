@@ -1,33 +1,35 @@
 # Gaze
 
-egui / eframe で作った、表情のある xeyes 風デスクトップアプリです。
+[日本語](README.ja.md)
 
-## 特徴
+An expressive xeyes-style desktop application built with egui / eframe.
 
-- 2つの目がデスクトップ上のマウスカーソルを追跡
-- カーソルが遠くなるにつれて目を細める
-- 2.3〜6.4秒程度の不規則な間隔で自然に瞬き
-- カーソルが7秒止まるとあくびし、15秒止まると目を閉じて眠る
-- 背景透過・タイトルバーなし・タスクバー非表示
-- システムトレイから表示切替と終了が可能
-- システムトレイからWindowsログイン時の自動起動を設定可能
-- 目の外周をドラッグしてウィンドウサイズを変更可能
-- 終了時の表示位置とサイズを記憶し、次回起動時に復元
-- DPI スケーリングに対応
+## Features
 
-目の中央付近をドラッグすると表示位置を移動できます。目の左右端では横方向、上下端では縦方向へサイズを変更できます。トレイアイコンを左クリックまたは右クリックすると、表示切替、自動起動、終了のメニューを開けます。
+- Two eyes follow the desktop mouse cursor
+- The eyes squint as the cursor moves farther away
+- Natural blinking at irregular intervals of approximately 2.3 to 6.4 seconds
+- Yawns after the cursor remains still for 7 seconds, then closes its eyes and sleeps after 15 seconds
+- Transparent background with no title bar or taskbar entry
+- Show, hide, and exit controls in the system tray
+- Optional automatic startup when signing in to Windows
+- Resizable by dragging the outer edges of the eyes
+- Restores the previous window position and size at startup
+- DPI scaling support
 
-自動起動は現在のWindowsユーザーだけに設定され、管理者権限は不要です。
+Drag near the center of either eye to move the window. Drag the left or right outer edge to resize it horizontally, or the top or bottom edge to resize it vertically. Left-click or right-click the tray icon to open the show/hide, automatic startup, and exit menu.
 
-## 実行
+Automatic startup is configured only for the current Windows user and does not require administrator privileges.
+
+## Running
 
 ```powershell
 cargo run --release
 ```
 
-Windows では、カーソルがウィンドウ外にあっても追跡します。それ以外の OS では、現在はウィンドウ内のカーソル位置を追跡します。
+On Windows, Gaze tracks the cursor even when it is outside the window. On other operating systems, it currently tracks the cursor only while it is inside the window.
 
-## 開発時の確認
+## Development checks
 
 ```powershell
 cargo test
