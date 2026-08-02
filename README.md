@@ -16,6 +16,7 @@ An expressive xeyes-style desktop application built with egui / eframe.
 - Resizable by dragging the outer edges of the eyes
 - Restores the previous window position and size at startup
 - DPI scaling support
+- Automatically recovers stalled eye rendering with native Windows repaint notifications
 
 Drag near the center of either eye to move the window. Drag the left or right outer edge to resize it horizontally, or the top or bottom edge to resize it vertically. Left-click or right-click the tray icon to open the show/hide, automatic startup, and exit menu.
 

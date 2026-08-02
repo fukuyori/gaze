@@ -119,6 +119,12 @@ impl GazeApp {
             blinker: Blinker::new(seed),
             idle_animator: IdleAnimator::new(seed.rotate_left(17)),
             last_cursor: None,
+            #[cfg(windows)]
+            _repaint_watchdog: repaint_watchdog::RepaintWatchdog::new(
+                &creation_context.egui_ctx,
+                window_handle,
+            )?,
+            #[cfg(not(windows))]
             _repaint_watchdog: repaint_watchdog::RepaintWatchdog::new(&creation_context.egui_ctx)?,
             #[cfg(windows)]
             tray,
