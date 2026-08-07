@@ -4,6 +4,12 @@
 
 An expressive xeyes-style desktop application built with egui / eframe.
 
+<p align="center">
+  <img src="images/screenshot1.png" alt="Gaze following the cursor" width="260">
+  <img src="images/screenshot2.png" alt="Gaze squinting and yawning" width="288">
+  <img src="images/screenshot3.png" alt="Gaze system tray settings" width="232">
+</p>
+
 ## Features
 
 - Two eyes follow the desktop mouse cursor, trailing it the way eyes do: a lazy pursuit for small movements and a fast saccade for large ones

@@ -4,6 +4,12 @@
 
 egui / eframe で作った、表情のある xeyes 風デスクトップアプリです。
 
+<p align="center">
+  <img src="images/screenshot1.png" alt="カーソルを追うGaze" width="260">
+  <img src="images/screenshot2.png" alt="目を細めてあくびするGaze" width="288">
+  <img src="images/screenshot3.png" alt="Gazeのシステムトレイ設定" width="232">
+</p>
+
 ## 特徴
 
 - 2つの目がデスクトップ上のマウスカーソルを追跡。小さな動きはゆっくり追い、大きく飛ぶと素早く追いつく、実際の目に近い動き
