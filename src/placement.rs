@@ -20,8 +20,8 @@ const SAVE_DELAY: Duration = Duration::from_millis(700);
 
 pub const DEFAULT_WIDTH: f32 = 380.0;
 pub const DEFAULT_HEIGHT: f32 = 220.0;
-pub const MIN_WIDTH: f32 = 260.0;
-pub const MIN_HEIGHT: f32 = 150.0;
+pub const MIN_WIDTH: f32 = 120.0;
+pub const MIN_HEIGHT: f32 = 80.0;
 pub const MAX_WIDTH: f32 = 540.0;
 pub const MAX_HEIGHT: f32 = 320.0;
 

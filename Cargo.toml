@@ -1,12 +1,15 @@
 [package]
 name = "gaze"
-version = "0.1.5"
+version = "0.2.0"
 edition = "2024"
 description = "An expressive xeyes-style cursor watcher"
 license = "MIT"
 
 [dependencies]
 eframe = { version = "0.35.0", default-features = false, features = ["default_fonts", "glow"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+raw-window-handle = "0.6.2"
 
 [target.'cfg(windows)'.dependencies]
 raw-window-handle = "0.6.2"

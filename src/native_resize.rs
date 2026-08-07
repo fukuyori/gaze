@@ -86,7 +86,7 @@ impl NativeResize {
         })
     }
 
-    pub fn update(&self, bounds: Rect, pixels_per_point: f32, enabled: bool) {
+    pub fn update(&self, bounds: Rect, edge: f32, pixels_per_point: f32, enabled: bool) {
         self.state.enabled.store(false, Ordering::Release);
         self.state.left.store(
             (bounds.left() * pixels_per_point).round() as i32,
@@ -105,7 +105,7 @@ impl NativeResize {
             Ordering::Relaxed,
         );
         self.state.edge.store(
-            (12.0 * pixels_per_point).round().max(1.0) as i32,
+            (edge * pixels_per_point).round().max(1.0) as i32,
             Ordering::Relaxed,
         );
         self.state.enabled.store(enabled, Ordering::Release);
